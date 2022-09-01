@@ -1,0 +1,1 @@
+Jupter Notebook to efficiently bag content according to the BagIt specification, designed for non-coders. Requires Jupyter Notebook, as well as bagit python (https://github.com/LibraryOfCongress/bagit-python) and the grabbags library (https://github.com/amiaopensource/grabbags).
