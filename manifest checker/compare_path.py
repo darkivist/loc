@@ -23,3 +23,10 @@ for element in filePaths_string:
         differences2.append(element)
 
 print("The following unexpected files were found:",differences2)
+
+wrong_location = []
+for element in filePaths:
+    if element.parts[-1].split("_")[0] != element.parent.parts[-1].split("_")[0]:
+        wrong_location.append(element)
+    
+print("The following files may be in the wrong location:",wrong_location)
