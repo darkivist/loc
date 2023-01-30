@@ -1,15 +1,19 @@
 from pathlib import Path
 import csv
 
-fileList = open("fileList.txt", "r")
+input1 = input("Please enter path to fileList.txt and press Enter: ")
+
+fileList = open(input1, "r")
 data = fileList.read()
 fileList_reformatted = data.replace('\n', '').split(",")
-print(fileList_reformatted)
+#print(fileList_reformatted)
 
-p = Path('C:/Users/Shared/Downloads/compare').rglob('*')
+input2 = input("Please enter path to content and press Enter: ")
+
+p = Path(input2).rglob('*')
 filePaths = [x for x in p if x.is_file()]
 filePaths_string = [str(x) for x in filePaths]
-print(filePaths_string)
+#print(filePaths_string)
 
 differences1 = []
 for element in fileList_reformatted:
