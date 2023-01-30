@@ -6,7 +6,7 @@ data = fileList.read()
 fileList_reformatted = data.replace('\n', '').split(",")
 print(fileList_reformatted)
 
-p = Path('C:/Users/pakelly/Downloads/compare').rglob('*')
+p = Path('C:/Users/Shared/Downloads/compare').rglob('*')
 filePaths = [x for x in p if x.is_file()]
 filePaths_string = [str(x) for x in filePaths]
 print(filePaths_string)
