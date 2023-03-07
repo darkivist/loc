@@ -43,7 +43,7 @@ with open("unexpected_files_report.csv","w",newline="\n") as f:
 
 wrong_location = []
 for element in filePaths:
-    if element.parts[-1].split("_")[0] != element.parent.parts[-1].split("_")[0]:
+    if element.parts[-1].split("_")[0].lower() != element.parent.parts[-1].split("_")[0].lower():
         wrong_location.append(element)
     
 print("The following files may be in the wrong location:",wrong_location)
