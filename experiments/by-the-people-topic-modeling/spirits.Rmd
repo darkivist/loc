@@ -1,0 +1,142 @@
+---
+title: "VISUALIZING SPIRITS: Messing around with Topic Models and By The People Crowdsourced Transcriptions (Frederick Hockley's notebooks)"
+author: "Paul Kelly"
+date: "4/28/2023"
+# date: "`r Sys.Date()`"
+output:
+  html_document:
+    code_folding: hide
+    number_sections: false
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+```{r init, include=FALSE}
+# some of common options (and the defaults) are: 
+# include=T, eval=T, echo=T, results='hide'/'asis'/'markup',..., collapse=F, warning=T, message=T, error=T, cache=T, fig.width=6, fig.height=4, fig.dim=c(6,4) #inches, fig.align='left'/'center','right', 
+library(ezids)
+# knitr::opts_chunk$set(warning = F, results = "markup", message = F)
+knitr::opts_chunk$set(warning = F, results = "asis", message = F)
+options(scientific=T, digits = 3) 
+# options(scipen=9, digits = 3) 
+# ‘scipen’: integer. A penalty to be applied when deciding to print numeric values in fixed or exponential notation.  Positive values bias towards fixed and negative towards scientific notation: fixed notation will be preferred unless it is more than ‘scipen’ digits wider.
+# use scipen=999 to prevent scientific notation at all times
+```
+
+# sPiRiTs
+
+```{r}
+#load packages
+library(tm)
+library(topicmodels)
+library(LDAvis)
+library(servr)
+library(dplyr)
+library(stringi)
+library(ezids)
+```
+
+```{r}
+#read in data
+text <- readLines("C:\\PATH\\TO\\transcripts.txt")
+```
+
+```{r}
+#convert to corpus
+TextDoc <- Corpus(VectorSource(text))
+```
+
+```{r}
+#clean
+#Replacing "/", "@" and "|" with space
+toSpace <- content_transformer(function (x , pattern ) gsub(pattern, " ", x))
+TextDoc <- tm_map(TextDoc, toSpace, "/")
+TextDoc <- tm_map(TextDoc, toSpace, "@")
+TextDoc <- tm_map(TextDoc, toSpace, "\\|")
+# Convert the text to lower case
+TextDoc <- tm_map(TextDoc, content_transformer(tolower))
+# Remove numbers
+TextDoc <- tm_map(TextDoc, removeNumbers)
+# Remove english common stopwords
+TextDoc <- tm_map(TextDoc, removeWords, stopwords("english"))
+# Remove punctuations
+TextDoc <- tm_map(TextDoc, removePunctuation)
+# Eliminate extra white spaces
+TextDoc <- tm_map(TextDoc, stripWhitespace)
+# Text stemming - which reduces words to their root form
+TextDoc <- tm_map(TextDoc, stemDocument)
+corpus <- TextDoc
+```
+
+```{r}
+#make document term matrix from corpus
+dtm <- DocumentTermMatrix(corpus)
+rowTotals<-apply(dtm,1,sum) #running this line takes time
+empty.rows<-dtm[rowTotals==0,]$dimnames[1][[1]] 
+corpus<-corpus[-as.numeric(empty.rows)]
+dtm <- DocumentTermMatrix(corpus)
+```
+
+```{r}
+#check matrix (first 5 rows)
+inspect(dtm[1:5, 1:5])
+```
+
+```{r}
+#check term frequency
+dtm.mx <- as.matrix(dtm)
+frequency <- colSums(dtm.mx)
+frequency <- sort(frequency, decreasing=TRUE)
+frequency[1:25]
+```
+
+```{r}
+#specify topic model parameters (change these later maybe?)
+burnin <- 4000
+iter <- 2000
+thin <- 500
+seed <-list(2003,5,63,100001,765)
+nstart <- 5
+best <- TRUE
+k <- 5 #find 5 topics - maybe add more?
+```
+
+```{r}
+#create topic model!
+ldaOut <-LDA(dtm,k, method="Gibbs", control=list(nstart=nstart, seed = seed, best=best, burnin = burnin, iter = iter, thin=thin))
+```
+
+```{r}
+#create csv!
+ldaOut.topics <- as.matrix(topics(ldaOut))
+write.csv(ldaOut.topics,file=paste("topic_model",k,"DocsToTopics.csv"))
+```
+
+```{r}
+#inspect some keywords associated with each "topic"
+ldaOut.terms <- as.matrix(terms(ldaOut,6))
+write.csv(ldaOut.terms,file=paste("topic_model",k,"TopicsToTerms.csv"))
+ldaOut.terms[1:6,]
+```
+
+```{r}
+#create cool visualization!
+topicmodels2LDAvis <- function(x, ...){
+  post <- topicmodels::posterior(x)
+  if (ncol(post[["topics"]]) < 3) stop("The model must contain > 2 topics")
+  mat <- x@wordassignments
+  LDAvis::createJSON(
+    phi = post[["terms"]], 
+    theta = post[["topics"]],
+    vocab = colnames(post[["terms"]]),
+    doc.length = slam::row_sums(mat, na.rm = TRUE),
+    term.frequency = slam::col_sums(mat, na.rm = TRUE)
+  )
+}
+
+serVis(topicmodels2LDAvis(ldaOut))
+```
